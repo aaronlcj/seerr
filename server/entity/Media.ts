@@ -18,6 +18,7 @@ import logger from '@server/logger';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
 import { getHostname } from '@server/utils/getHostname';
 import {
+  Brackets,
   AfterLoad,
   Column,
   Entity,
@@ -72,13 +73,19 @@ class Media {
           .createQueryBuilder('media')
           .select('media.id', 'id')
           .distinct(true)
-          .innerJoin('media.requests', 'request')
+          .leftJoin('media.requests', 'request')
           .where('media.id IN (:...mediaIds)', {
             mediaIds: relatedMedia.map((m) => m.id),
           })
-          .andWhere('request.status IN (:...statuses)', {
-            statuses: [MediaRequestStatus.PENDING, MediaRequestStatus.APPROVED],
-          })
+          .andWhere(
+            new Brackets((qb) => {
+              qb.where('request.status IN (:...statuses)', {
+                statuses: [MediaRequestStatus.PENDING, MediaRequestStatus.APPROVED],
+              }).orWhere('media.status = :status', {
+                status: MediaStatus.PROCESSING,
+              });
+            })
+          )
           .getRawMany<{ id: number }>();
 
         const activeIds = new Set(activeRequestMediaIds.map((row) => row.id));
