@@ -16,7 +16,8 @@ permissions:
   contents: write
   packages: write
   issues: write
-
+  actions: write
+  
 jobs:
   sync-and-build:
     runs-on: ubuntu-latest
